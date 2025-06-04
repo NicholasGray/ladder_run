@@ -1,19 +1,21 @@
-# Phaser Game Starter
+# Ladder Run
 
-This repository provides a minimal setup for building a Phaser-based game.
+Quick instructions for installing dependencies and starting the development server.
 
 ## Getting Started
 
-Install the dependencies:
+Clone the repository and install packages:
 
 ```bash
+git clone <repo-url>
+cd ladder-run
 npm install
 ```
 
-Run the development server:
+Launch the app in development mode using **nodemon**:
 
 ```bash
-npm start
+npm run dev
 ```
 
-Then open [http://localhost:8080/public](http://localhost:8080/public) in your browser to view the game.
+The server runs on `http://localhost:3000`. Open this URL in your browser to start playing.
