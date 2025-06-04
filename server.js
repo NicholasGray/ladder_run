@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const QUESTIONS = require('./data/questions.json');
 
 const app = express();
 const server = http.createServer(app);
@@ -22,7 +23,7 @@ function getOrCreateRoom(roomId) {
 
 function assignToSmallestTeam(room, nick, socketId) {
   while (room.teams.length < 5) {
-    room.teams.push({ players: [] });
+    room.teams.push({ id: room.teams.length, players: [], rung: 0 });
   }
 
   let smallest = room.teams[0];
@@ -35,6 +36,24 @@ function assignToSmallestTeam(room, nick, socketId) {
   const player = { id: socketId, nick };
   smallest.players.push(player);
   return { team: smallest, player };
+}
+
+function startQuestionLoop(roomId) {
+  const room = getOrCreateRoom(roomId);
+  if (room.qInterval) return;
+
+  room.qInterval = setInterval(() => {
+    const q = QUESTIONS[room.qIndex % QUESTIONS.length];
+    room.qIndex = (room.qIndex + 1) % QUESTIONS.length;
+    room.currentQuestion = q;
+    room.answeredSockets = new Set();
+    io.to(roomId).emit('question', {
+      id: q.id,
+      prompt: q.prompt,
+      options: q.options,
+      timeMs: 15000,
+    });
+  }, 15000);
 }
 
 // Serve static files from public directory
@@ -54,6 +73,37 @@ io.on('connection', (socket) => {
     socket.join(roomId);
     socket.emit('snapshot', room);
     io.to(roomId).emit('playerJoined', { roomId, team, player });
+    startQuestionLoop(roomId);
+  });
+
+  socket.on('answer', ({ roomId, id, answer }) => {
+    const room = getOrCreateRoom(roomId);
+    if (!room.currentQuestion || room.currentQuestion.id !== id) return;
+    if (room.answeredSockets && room.answeredSockets.has(socket.id)) return;
+    room.answeredSockets.add(socket.id);
+
+    // find player's team
+    let team, teamIndex;
+    for (let i = 0; i < room.teams.length; i++) {
+      const t = room.teams[i];
+      if (t.players.some(p => p.id === socket.id)) {
+        team = t;
+        teamIndex = i;
+        break;
+      }
+    }
+    if (!team) return;
+
+    const q = room.currentQuestion;
+    if (answer === q.answer) {
+      team.rung = (team.rung || 0) + 1;
+      io.to(roomId).emit('climb', {
+        teamId: team.id !== undefined ? team.id : teamIndex,
+        rung: team.rung,
+      });
+    } else {
+      socket.emit('answerWrong');
+    }
   });
 });
 
