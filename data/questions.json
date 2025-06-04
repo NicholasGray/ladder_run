@@ -1,0 +1,7 @@
+[
+  { "id": "q1", "prompt": "2+2?", "options": ["3", "4", "5"], "answer": "4" },
+  { "id": "q2", "prompt": "Capital of France?", "options": ["London", "Berlin", "Paris"], "answer": "Paris" },
+  { "id": "q3", "prompt": "5*3?", "options": ["8", "15", "10"], "answer": "15" },
+  { "id": "q4", "prompt": "Water formula?", "options": ["H2O", "CO2", "O2"], "answer": "H2O" },
+  { "id": "q5", "prompt": "Color of the sky?", "options": ["Blue", "Green", "Red"], "answer": "Blue" }
+]
