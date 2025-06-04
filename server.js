@@ -101,6 +101,12 @@ io.on('connection', (socket) => {
         teamId: team.id !== undefined ? team.id : teamIndex,
         rung: team.rung,
       });
+      if (team.rung >= room.ladderHeight) {
+        io.to(roomId).emit('gameOver', { winners: [team.id !== undefined ? team.id : teamIndex] });
+        room.phase = 'finished';
+        clearInterval(room.qInterval);
+        room.qInterval = null;
+      }
     } else {
       socket.emit('answerWrong');
     }
