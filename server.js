@@ -71,9 +71,36 @@ io.on('connection', (socket) => {
     const room = getOrCreateRoom(roomId);
     const { team, player } = assignToSmallestTeam(room, nick, socket.id);
     socket.join(roomId);
+    socket.roomId = roomId;
     socket.emit('snapshot', room);
     io.to(roomId).emit('playerJoined', { roomId, team, player });
     startQuestionLoop(roomId);
+  });
+
+  socket.on('disconnect', () => {
+    const roomId = socket.roomId;
+    if (!roomId) return;
+    const room = rooms[roomId];
+    if (!room) return;
+
+    for (let i = room.teams.length - 1; i >= 0; i--) {
+      const team = room.teams[i];
+      const playerIndex = team.players.findIndex(p => p.id === socket.id);
+      if (playerIndex !== -1) {
+        team.players.splice(playerIndex, 1);
+        if (team.players.length === 0) {
+          room.teams.splice(i, 1);
+        }
+        break;
+      }
+    }
+
+    if (room.teams.length === 0) {
+      if (room.qInterval) {
+        clearInterval(room.qInterval);
+      }
+      delete rooms[roomId];
+    }
   });
 
   socket.on('answer', ({ roomId, id, answer }) => {

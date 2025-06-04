@@ -28,6 +28,9 @@ class Lobby extends Phaser.Scene {
       const roomId = roomInput.value.trim();
       socket.emit('join', { roomId, nick });
       socket.roomId = roomId;
+      try {
+        localStorage.setItem('session', JSON.stringify({ roomId, nick }));
+      } catch (err) {}
       form.remove();
       this.scene.start('Play');
     });
@@ -198,3 +201,14 @@ const socket = io();
 const ladderX = [100, 260, 420, 580, 740];
 const config = { type: Phaser.AUTO, width: 800, height: 600, scene: [Lobby, Play, End] };
 new Phaser.Game(config);
+
+try {
+  const saved = localStorage.getItem('session');
+  if (saved) {
+    const { roomId, nick } = JSON.parse(saved);
+    if (roomId && nick) {
+      socket.emit('join', { roomId, nick });
+      socket.roomId = roomId;
+    }
+  }
+} catch (err) {}
