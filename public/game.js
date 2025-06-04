@@ -61,7 +61,12 @@ class Play extends Phaser.Scene {
         this.flashSprite(teamId, 0x00ff00);
       }
     });
-    socket.on('question', (q) => this.showQuestion(q));
+    socket.on('question', (q) => {
+      this.showQuestion(q);
+      let sec = 15;
+      this.timerText = this.add.text(400, 10, '15', { fontSize: 24 }).setOrigin(0.5, 0);
+      this.time.addEvent({ delay: 1000, repeat: 14, callback: () => { --sec; this.timerText.setText(sec); } });
+    });
     socket.on('answerWrong', () => {
       if (this.myTeamId !== undefined) {
         this.flashSprite(this.myTeamId, 0xff0000);
