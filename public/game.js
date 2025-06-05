@@ -113,7 +113,8 @@ class Play extends Phaser.Scene {
     }
 
     const avatarTex = this.textures.get('avatar-red').getSourceImage();
-    const avatarScale = (AVATAR_HEIGHT * this.scaleFactor) / avatarTex.height;
+    // Reduce AVATAR_HEIGHT to make avatars smaller if needed, or adjust avatarScale here:
+    const avatarScale = (AVATAR_HEIGHT * this.scaleFactor) / avatarTex.height * 0.45; // 0.5 shrinks avatars to half size
     const colors = ['red', 'orange', 'yellow', 'green', 'blue'];
     for (let i = 0; i < snapshot.teams.length; i++) {
       const team = snapshot.teams[i];
@@ -125,8 +126,7 @@ class Play extends Phaser.Scene {
         this.myTeamId = team.id !== undefined ? team.id : i;
       }
     }
-  }
-
+}
   createAnswerUi() {
     const container = document.createElement('div');
     container.style.position = 'absolute';
