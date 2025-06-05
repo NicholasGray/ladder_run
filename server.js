@@ -40,7 +40,8 @@ function assignToSmallestTeam(room, nick, socketId) {
 
 function startQuestionLoop(roomId) {
   const room = getOrCreateRoom(roomId);
-  if (room.qInterval) return;
+  const playerCount = room.teams.reduce((acc, t) => acc + t.players.length, 0);
+  if (playerCount < 2 || room.qInterval) return;
 
   room.qInterval = setInterval(() => {
     const q = QUESTIONS[room.qIndex % QUESTIONS.length];
@@ -89,6 +90,10 @@ const io = new Server(server, {
 
 io.on('connection', (socket) => {
   socket.on('join', ({ roomId, nick }) => {
+    if (!roomId || !nick) {
+      socket.emit('joinError', 'Room and team name required');
+      return;
+    }
     const room = getOrCreateRoom(roomId);
     const { team, player } = assignToSmallestTeam(room, nick, socket.id);
     socket.join(roomId);
@@ -114,6 +119,12 @@ io.on('connection', (socket) => {
         }
         break;
       }
+    }
+
+    const playerCount = room.teams.reduce((sum, t) => sum + t.players.length, 0);
+    if (playerCount < 2 && room.qInterval) {
+      clearInterval(room.qInterval);
+      room.qInterval = null;
     }
 
     if (room.teams.length === 0) {
