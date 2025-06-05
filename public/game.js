@@ -22,6 +22,14 @@ class Lobby extends Phaser.Scene {
     form.appendChild(roomInput);
     form.appendChild(submit);
 
+    // Listen for server confirmation before starting Play scene
+    const onSnapshot = (state) => {
+      if (!this.scene.isActive('Play')) {
+        this.scene.start('Play', { roomId: roomInput.value.trim(), nick: nickInput.value.trim() });
+      }
+    };
+    socket.on('snapshot', onSnapshot);
+
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const nick = nickInput.value.trim();
@@ -34,10 +42,16 @@ class Lobby extends Phaser.Scene {
         localStorage.setItem('session', JSON.stringify({ roomId, nick }));
       } catch (err) {}
       form.remove();
-      this.scene.start('Play', { roomId, nick });
+      // Only emit join, do not start Play scene here
+      socket.emit('join', { roomId, nick });
     });
 
     document.body.appendChild(form);
+
+    // Remove snapshot listener when scene shuts down
+    this.events.on('shutdown', () => {
+      socket.off('snapshot', onSnapshot);
+    });
   }
 }
 
@@ -71,7 +85,9 @@ class Play extends Phaser.Scene {
     this.scaledLadderX = ladderX.map(x => this.xOffset + x * this.scaleFactor);
 
     this.createAnswerUi();
-    socket.on('snapshot', (state) => this.drawState(state));
+    socket.on('snapshot', (state) => {
+      this.drawState(state);
+    });
     socket.on('climb', ({ teamId, rung }) => {
       const sprite = this.avatarSprites && this.avatarSprites[teamId];
       if (sprite) {
@@ -121,12 +137,10 @@ class Play extends Phaser.Scene {
     }
 
     const avatarTex = this.textures.get('avatar-red').getSourceImage();
-    // Reduce AVATAR_HEIGHT to make avatars smaller if needed, or adjust avatarScale here:
-    const avatarScale = (AVATAR_HEIGHT * this.scaleFactor) / avatarTex.height * 0.45; // 0.5 shrinks avatars to half size
+    const avatarScale = (AVATAR_HEIGHT * this.scaleFactor) / avatarTex.height * 0.45;
     const colors = ['red', 'orange', 'yellow', 'green', 'blue'];
     for (let i = 0; i < snapshot.teams.length; i++) {
       const team = snapshot.teams[i];
-      // only draw avatars for teams with players
       if (!team.players || team.players.length === 0) {
         continue;
       }
@@ -136,7 +150,6 @@ class Play extends Phaser.Scene {
       const sprite = this.add
         .sprite(xPos, this.yForRung(team.rung || 0), `avatar-${color}`)
         .setScale(avatarScale);
-      // store by team id so incoming events can look up by id
       this.avatarSprites[team.id !== undefined ? team.id : i] = sprite;
 
       this.add
@@ -150,7 +163,8 @@ class Play extends Phaser.Scene {
         this.myTeamId = team.id !== undefined ? team.id : i;
       }
     }
-}
+  }
+
   createAnswerUi() {
     const container = document.createElement('div');
     container.style.position = 'absolute';
@@ -255,12 +269,13 @@ const ladderX = [100, 260, 420, 580, 740];
 const config = { type: Phaser.AUTO, width: 800, height: 600, scene: [Lobby, Play, End] };
 const game = new Phaser.Game(config);
 
-try {
-  const saved = localStorage.getItem('session');
-  if (saved) {
-    const { roomId, nick } = JSON.parse(saved);
-    if (roomId && nick) {
-      game.scene.start('Play', { roomId, nick });
-    }
-  }
-} catch (err) {}
+// Remove auto-join on page load
+// try {
+//   const saved = localStorage.getItem('session');
+//   if (saved) {
+//     const { roomId, nick } = JSON.parse(saved);
+//     if (roomId && nick) {
+//       game.scene.start('Play', { roomId, nick });
+//     }
+//   }
+// } catch (err) {}

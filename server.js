@@ -9,38 +9,37 @@ const server = http.createServer(app);
 // In-memory room storage
 const rooms = {};
 
+// Each "team" is just a single player
 function getOrCreateRoom(roomId) {
   if (!rooms[roomId]) {
     rooms[roomId] = {
       phase: 'lobby',
       ladderHeight: 12,
       qIndex: 0,
-      teams: []
+      teams: [] // Each team is a player
     };
   }
   return rooms[roomId];
 }
 
-function assignToSmallestTeam(room, nick, socketId) {
-  while (room.teams.length < 5) {
-    room.teams.push({ id: room.teams.length, players: [], rung: 0 });
+// Each player is their own team
+function assignPlayerAsTeam(room, nick, socketId) {
+  // Prevent duplicate join
+  if (room.teams.some(t => t.player && t.player.id === socketId)) {
+    return room.teams.find(t => t.player && t.player.id === socketId);
   }
-
-  let smallest = room.teams[0];
-  for (const team of room.teams) {
-    if (team.players.length < smallest.players.length) {
-      smallest = team;
-    }
-  }
-
-  const player = { id: socketId, nick };
-  smallest.players.push(player);
-  return { team: smallest, player };
+  const team = {
+    id: room.teams.length,
+    rung: 0,
+    player: { id: socketId, nick }
+  };
+  room.teams.push(team);
+  return { team, player: team.player };
 }
 
 function startQuestionLoop(roomId) {
   const room = getOrCreateRoom(roomId);
-  const playerCount = room.teams.reduce((acc, t) => acc + t.players.length, 0);
+  const playerCount = room.teams.length;
   if (playerCount < 2 || room.qInterval) return;
 
   room.qInterval = setInterval(() => {
@@ -65,7 +64,7 @@ function createRoomSnapshot(room) {
     teams: room.teams.map(t => ({
       id: t.id,
       rung: t.rung,
-      players: t.players,
+      players: [t.player], // Keep as array for client compatibility
     })),
   };
   if (room.currentQuestion) {
@@ -95,14 +94,16 @@ io.on('connection', (socket) => {
       return;
     }
     const room = getOrCreateRoom(roomId);
-    const { team, player } = assignToSmallestTeam(room, nick, socket.id);
+    const { team, player } = assignPlayerAsTeam(room, nick, socket.id);
     socket.join(roomId);
     socket.roomId = roomId;
-    socket.emit('snapshot', createRoomSnapshot(room));
+
+    // Send updated snapshot to everyone in the room
+    io.to(roomId).emit('snapshot', createRoomSnapshot(room));
     io.to(roomId).emit('playerJoined', { roomId, team, player });
 
     // Only start the question loop if there are at least 2 players
-    const playerCount = room.teams.reduce((acc, t) => acc + t.players.length, 0);
+    const playerCount = room.teams.length;
     if (playerCount >= 2) {
       startQuestionLoop(roomId);
     }
@@ -114,19 +115,16 @@ io.on('connection', (socket) => {
     const room = rooms[roomId];
     if (!room) return;
 
+    // Remove the team (player) for this socket
     for (let i = room.teams.length - 1; i >= 0; i--) {
       const team = room.teams[i];
-      const playerIndex = team.players.findIndex(p => p.id === socket.id);
-      if (playerIndex !== -1) {
-        team.players.splice(playerIndex, 1);
-        if (team.players.length === 0) {
-          room.teams.splice(i, 1);
-        }
+      if (team.player && team.player.id === socket.id) {
+        room.teams.splice(i, 1);
         break;
       }
     }
 
-    const playerCount = room.teams.reduce((sum, t) => sum + t.players.length, 0);
+    const playerCount = room.teams.length;
     if (playerCount < 2 && room.qInterval) {
       clearInterval(room.qInterval);
       room.qInterval = null;
@@ -150,7 +148,7 @@ io.on('connection', (socket) => {
     let team, teamIndex;
     for (let i = 0; i < room.teams.length; i++) {
       const t = room.teams[i];
-      if (t.players.some(p => p.id === socket.id)) {
+      if (t.player && t.player.id === socket.id) {
         team = t;
         teamIndex = i;
         break;
