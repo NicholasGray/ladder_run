@@ -26,13 +26,11 @@ class Lobby extends Phaser.Scene {
       e.preventDefault();
       const nick = nickInput.value.trim();
       const roomId = roomInput.value.trim();
-      socket.emit('join', { roomId, nick });
-      socket.roomId = roomId;
       try {
         localStorage.setItem('session', JSON.stringify({ roomId, nick }));
       } catch (err) {}
       form.remove();
-      this.scene.start('Play');
+      this.scene.start('Play', { roomId, nick });
     });
 
     document.body.appendChild(form);
@@ -42,6 +40,10 @@ class Lobby extends Phaser.Scene {
 class Play extends Phaser.Scene {
   constructor() {
     super('Play');
+  }
+
+  init(data) {
+    this.joinData = data;
   }
 
   preload() {
@@ -75,6 +77,11 @@ class Play extends Phaser.Scene {
         this.flashSprite(this.myTeamId, 0xff0000);
       }
     });
+
+    if (this.joinData && this.joinData.roomId && this.joinData.nick) {
+      socket.emit('join', { roomId: this.joinData.roomId, nick: this.joinData.nick });
+      socket.roomId = this.joinData.roomId;
+    }
   }
 
   yForRung(r) {
@@ -200,15 +207,14 @@ class End extends Phaser.Scene {
 const socket = io();
 const ladderX = [100, 260, 420, 580, 740];
 const config = { type: Phaser.AUTO, width: 800, height: 600, scene: [Lobby, Play, End] };
-new Phaser.Game(config);
+const game = new Phaser.Game(config);
 
 try {
   const saved = localStorage.getItem('session');
   if (saved) {
     const { roomId, nick } = JSON.parse(saved);
     if (roomId && nick) {
-      socket.emit('join', { roomId, nick });
-      socket.roomId = roomId;
+      game.scene.start('Play', { roomId, nick });
     }
   }
 } catch (err) {}
