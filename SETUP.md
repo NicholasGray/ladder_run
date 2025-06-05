@@ -30,8 +30,8 @@ If your project contains a `server.js` file that serves the contents of the
 npm start
 ```
 
-The server should listen on port `8080`. Once running, open
-[http://localhost:8080/public](http://localhost:8080/public) in your browser.
+The server should listen on port `3000`. Once running, open
+[http://localhost:3000/public](http://localhost:3000/public) in your browser.
 
 ### Using `http-server`
 
@@ -39,11 +39,11 @@ If the `server.js` file is missing or you simply want to serve the static files
 directly, you can use the bundled `http-server` package:
 
 ```bash
-npx http-server -p 8080
+npx http-server -p 3000
 ```
 
 Then navigate to
-[http://localhost:8080/public](http://localhost:8080/public).
+[http://localhost:3000/public](http://localhost:3000/public).
 
 ## Development Mode
 
