@@ -113,7 +113,7 @@ class Play extends Phaser.Scene {
     }
 
     const avatarTex = this.textures.get('avatar-red').getSourceImage();
-    const avatarScale = this.rungSpacing / avatarTex.height;
+    const avatarScale = (AVATAR_HEIGHT * this.scaleFactor) / avatarTex.height;
     const colors = ['red', 'orange', 'yellow', 'green', 'blue'];
     for (let i = 0; i < snapshot.teams.length; i++) {
       const team = snapshot.teams[i];
@@ -226,6 +226,7 @@ class End extends Phaser.Scene {
 }
 
 const socket = io();
+const AVATAR_HEIGHT = 100; // target avatar height in pixels
 const ladderX = [100, 260, 420, 580, 740];
 const config = { type: Phaser.AUTO, width: 800, height: 600, scene: [Lobby, Play, End] };
 const game = new Phaser.Game(config);
