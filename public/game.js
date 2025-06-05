@@ -118,10 +118,26 @@ class Play extends Phaser.Scene {
     const colors = ['red', 'orange', 'yellow', 'green', 'blue'];
     for (let i = 0; i < snapshot.teams.length; i++) {
       const team = snapshot.teams[i];
+      // only draw avatars for teams with players
+      if (!team.players || team.players.length === 0) {
+        continue;
+      }
+
+      const color = colors[team.id !== undefined ? team.id : i];
+      const xPos = this.scaledLadderX[team.id !== undefined ? team.id : i];
       const sprite = this.add
-        .sprite(this.scaledLadderX[i], this.yForRung(team.rung || 0), `avatar-${colors[i]}`)
+        .sprite(xPos, this.yForRung(team.rung || 0), `avatar-${color}`)
         .setScale(avatarScale);
-      this.avatarSprites[i] = sprite;
+      // store by team id so incoming events can look up by id
+      this.avatarSprites[team.id !== undefined ? team.id : i] = sprite;
+
+      this.add
+        .text(xPos, sprite.y + (avatarTex.height * avatarScale) / 2 + 10, `Team ${color}`, {
+          fontSize: `${16 * this.scaleFactor}px`,
+          color: '#fff'
+        })
+        .setOrigin(0.5, 0);
+
       if (team.players.some(p => p.id === socket.id)) {
         this.myTeamId = team.id !== undefined ? team.id : i;
       }
