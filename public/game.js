@@ -57,6 +57,15 @@ class Play extends Phaser.Scene {
 
   create() {
     this.add.text(100, 100, 'Waiting for game...', { fontSize: '32px', fill: '#fff' });
+
+    const BASE_W = 800;
+    const BASE_H = 600;
+    this.scaleFactor = Math.min(this.cameras.main.width / BASE_W, this.cameras.main.height / BASE_H);
+    this.rungSpacing = 40 * this.scaleFactor;
+    this.rungBottom = this.cameras.main.height - 70 * this.scaleFactor;
+    this.xOffset = (this.cameras.main.width - BASE_W * this.scaleFactor) / 2;
+    this.scaledLadderX = ladderX.map(x => this.xOffset + x * this.scaleFactor);
+
     this.createAnswerUi();
     socket.on('snapshot', (state) => this.drawState(state));
     socket.on('climb', ({ teamId, rung }) => {
@@ -85,20 +94,32 @@ class Play extends Phaser.Scene {
   }
 
   yForRung(r) {
-    return 530 - r * 40;
+    return this.rungBottom - r * this.rungSpacing;
   }
 
   drawState(snapshot) {
-    this.add.image(400, 300, 'brick-bg');
+    this.add
+      .image(this.cameras.main.width / 2, this.cameras.main.height / 2, 'brick-bg')
+      .setDisplaySize(this.cameras.main.width, this.cameras.main.height);
     this.avatarSprites = [];
-    for (let i = 0; i < ladderX.length; i++) {
-      this.add.image(ladderX[i], 300, 'ladder');
+
+    const ladderTex = this.textures.get('ladder').getSourceImage();
+    const ladderScale = (this.rungSpacing * (snapshot.ladderHeight || 12)) / ladderTex.height;
+
+    for (let i = 0; i < this.scaledLadderX.length; i++) {
+      this.add
+        .image(this.scaledLadderX[i], this.cameras.main.height / 2, 'ladder')
+        .setScale(ladderScale);
     }
 
+    const avatarTex = this.textures.get('avatar-red').getSourceImage();
+    const avatarScale = this.rungSpacing / avatarTex.height;
     const colors = ['red', 'orange', 'yellow', 'green', 'blue'];
     for (let i = 0; i < snapshot.teams.length; i++) {
       const team = snapshot.teams[i];
-      const sprite = this.add.sprite(ladderX[i], this.yForRung(team.rung || 0), `avatar-${colors[i]}`);
+      const sprite = this.add
+        .sprite(this.scaledLadderX[i], this.yForRung(team.rung || 0), `avatar-${colors[i]}`)
+        .setScale(avatarScale);
       this.avatarSprites[i] = sprite;
       if (team.players.some(p => p.id === socket.id)) {
         this.myTeamId = team.id !== undefined ? team.id : i;
