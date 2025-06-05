@@ -56,6 +56,27 @@ function startQuestionLoop(roomId) {
   }, 15000);
 }
 
+function createRoomSnapshot(room) {
+  const snapshot = {
+    phase: room.phase,
+    ladderHeight: room.ladderHeight,
+    qIndex: room.qIndex,
+    teams: room.teams.map(t => ({
+      id: t.id,
+      rung: t.rung,
+      players: t.players,
+    })),
+  };
+  if (room.currentQuestion) {
+    snapshot.currentQuestion = {
+      id: room.currentQuestion.id,
+      prompt: room.currentQuestion.prompt,
+      options: room.currentQuestion.options,
+    };
+  }
+  return snapshot;
+}
+
 // Serve static files from public directory
 app.use(express.static('public'));
 
@@ -72,7 +93,7 @@ io.on('connection', (socket) => {
     const { team, player } = assignToSmallestTeam(room, nick, socket.id);
     socket.join(roomId);
     socket.roomId = roomId;
-    socket.emit('snapshot', room);
+    socket.emit('snapshot', createRoomSnapshot(room));
     io.to(roomId).emit('playerJoined', { roomId, team, player });
     startQuestionLoop(roomId);
   });
