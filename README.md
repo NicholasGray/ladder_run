@@ -18,4 +18,4 @@ Launch the app in development mode using **nodemon**:
 npm run dev
 ```
 
-The server runs on `http://localhost:3000`. Open this URL in your browser to start playing.
+The server runs on `http://localhost:3000` by default. You can override the port by setting the `PORT` environment variable.
