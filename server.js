@@ -100,7 +100,12 @@ io.on('connection', (socket) => {
     socket.roomId = roomId;
     socket.emit('snapshot', createRoomSnapshot(room));
     io.to(roomId).emit('playerJoined', { roomId, team, player });
-    startQuestionLoop(roomId);
+
+    // Only start the question loop if there are at least 2 players
+    const playerCount = room.teams.reduce((acc, t) => acc + t.players.length, 0);
+    if (playerCount >= 2) {
+      startQuestionLoop(roomId);
+    }
   });
 
   socket.on('disconnect', () => {
