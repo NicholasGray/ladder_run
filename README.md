@@ -8,7 +8,7 @@ Clone the repository and install packages:
 
 ```bash
 git clone <repo-url>
-cd ladder-run
+cd ladder_run
 npm install
 ```
 
