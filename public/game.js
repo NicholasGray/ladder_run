@@ -8,11 +8,11 @@ class Lobby extends Phaser.Scene {
 
     const nickInput = document.createElement('input');
     nickInput.name = 'nick';
-    nickInput.placeholder = 'Nickname';
+    nickInput.placeholder = 'Team Name';
 
     const roomInput = document.createElement('input');
     roomInput.name = 'room';
-    roomInput.placeholder = 'Room';
+    roomInput.placeholder = 'Room Number';
 
     const submit = document.createElement('button');
     submit.type = 'submit';
@@ -26,6 +26,10 @@ class Lobby extends Phaser.Scene {
       e.preventDefault();
       const nick = nickInput.value.trim();
       const roomId = roomInput.value.trim();
+      if (!nick || !roomId) {
+        alert('Please enter a team name and room number.');
+        return;
+      }
       try {
         localStorage.setItem('session', JSON.stringify({ roomId, nick }));
       } catch (err) {}
@@ -85,6 +89,10 @@ class Play extends Phaser.Scene {
       if (this.myTeamId !== undefined) {
         this.flashSprite(this.myTeamId, 0xff0000);
       }
+    });
+    socket.on('joinError', (msg) => {
+      alert(msg);
+      this.scene.start('Lobby');
     });
 
     if (this.joinData && this.joinData.roomId && this.joinData.nick) {
